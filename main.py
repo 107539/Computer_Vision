@@ -4,9 +4,9 @@ import glob
 
 # Global Variables
 SQUARE_SIZE: float = 24.23
-WIDTH: int = 9
-HEIGHT: int = 6
-criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+WIDTH: int = 6
+HEIGHT: int = 9
+criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.0001)
 chessBoardFlags = cv.CALIB_CB_ADAPTIVE_THRESH + cv.CALIB_CB_FAST_CHECK + cv.CALIB_CB_NORMALIZE_IMAGE
 
 corners3 = []
@@ -26,7 +26,7 @@ def interpolate(i, x, y):
 def runCalibration():
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
     objp = np.zeros((WIDTH * HEIGHT, 3), np.float32)
-    objp[:, :2] = np.mgrid[0:HEIGHT, 0:WIDTH].T.reshape(-1, 2)
+    objp[:, :2] = np.mgrid[0:WIDTH, 0:HEIGHT].T.reshape(-1, 2)
 
     for index, obj in enumerate(objp):
         objp[index] = obj * SQUARE_SIZE
@@ -49,21 +49,25 @@ def runCalibration():
         cv.imshow('img', img)
 
         # Try to find corners
-        success, corners = cv.findChessboardCorners(grayImg, (WIDTH, HEIGHT), chessBoardFlags)
+        success, corners = cv.findChessboardCorners(grayImg, (WIDTH, HEIGHT), None)
 
         # If successfully found
-        if True:
+        if success:
             # Increase corner accuracy and append
-            objpoints.append(objp)
-            corners2 = cv.cornerSubPix(grayImg, corners, (11, 11), (-1, -1), criteria)
-            imgpoints.append(corners2)
+            corners = cv.cornerSubPix(grayImg, corners, (11, 11), (-1, -1), criteria)
 
             # Draw and display the corners
-            cv.drawChessboardCorners(img, (WIDTH, HEIGHT), corners2, success)
+            cv.drawChessboardCorners(img, (WIDTH, HEIGHT), corners, success)
+
+            objpoints.append(objp)
+            imgpoints.append(corners)
+
             cv.imshow('img', img)
-            cv.waitKey(500)
+            # cv.waitKey(500)
         # If not successfully found
         else:
+            print('Rejected')
+            '''
             cv.imshow('img', img)
 
             # Set mouse click listening event
@@ -91,14 +95,14 @@ def runCalibration():
             cv.imshow('img', img)
             cv.waitKey(500)
             corners3.clear()
-
-    global ret, matrix, distortion, r_vecs, t_vecs
-    ret, matrix, distortion, r_vecs, t_vecs = cv.calibrateCamera(objpoints, imgpoints, grayImg.shape[:2], None, None)
+        '''
+    global ret, matrix, distortion
+    ret, matrix, distortion, _, _ = cv.calibrateCamera(objpoints, imgpoints, grayImg.shape[::-1], None, None)
 
 def draw(frame):
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
     objp = np.zeros((WIDTH * HEIGHT, 3), np.float32)
-    objp[:, :2] = np.mgrid[0:HEIGHT, 0:WIDTH].T.reshape(-1, 2)
+    objp[:, :2] = np.mgrid[0:WIDTH, 0:HEIGHT].T.reshape(-1, 2)
 
     for index, obj in enumerate(objp):
         objp[index] = obj * SQUARE_SIZE
@@ -117,27 +121,54 @@ def draw(frame):
 
         ret, rvecs, tvecs = cv.solvePnP(objp, corners2, matrix, distortion)
 
-        finalImg = drawAxis(frame, corners2[0], rvecs, tvecs)
-        #frame = drawCube(img, rvecs, tvecs)
+        finalImg = drawAxis(frame, rvecs, tvecs)
+        frame = drawCube(frame, rvecs, tvecs)
 
         cv.imshow('img', finalImg)
         cv.waitKey(0)
 
-def drawAxis(frame, corner, rvecs, tvecs):
+def drawAxis(frame, rvecs, tvecs):
     axis = np.float32([[3 * SQUARE_SIZE,0,0], [0,3 * SQUARE_SIZE,0], [0,0,-3 * SQUARE_SIZE], [0,0,0]]).reshape(-1,3)
-    print(axis)
+
     imgpts, jac = cv.projectPoints(axis, rvecs, tvecs, matrix, distortion)
 
-    print(matrix)
-    print(distortion)
-
     origin = tuple(map(int,(imgpts[3].ravel())))
-    print(imgpts)
+
     cv.line(frame, origin, tuple(map(int,(imgpts[0].ravel()))), (255, 0, 0), 3)
     cv.line(frame, origin, tuple(map(int,(imgpts[1].ravel()))), (0, 255, 0), 3)
     cv.line(frame, origin, tuple(map(int,(imgpts[2].ravel()))), (0, 0, 255), 3)
 
     return frame
+
+def drawCube(frame, rvecs, tvecs):
+    vec = 2 * SQUARE_SIZE
+    axis = np.float32([[0, vec, 0], [vec, vec, 0], [vec, 0, 0], [0, 0, -vec], [0, vec, -vec], [vec, vec, -vec], [vec, 0, -vec], [0, 0, 0]]).reshape(
+        -1, 3)
+
+    imgpts, jac = cv.projectPoints(axis, rvecs, tvecs, matrix, distortion)
+
+    origin = tuple(map(int, (imgpts[7].ravel())))
+
+    color = (255, 0 , 255)
+
+    cv.line(frame, origin, tuple(map(int, (imgpts[0].ravel()))), color, 3)
+    cv.line(frame, origin, tuple(map(int, (imgpts[2].ravel()))), color, 3)
+    cv.line(frame, origin, tuple(map(int, (imgpts[3].ravel()))), color, 3)
+
+    cv.line(frame, tuple(map(int, (imgpts[1].ravel()))), tuple(map(int, (imgpts[0].ravel()))), color, 3)
+    cv.line(frame, tuple(map(int, (imgpts[1].ravel()))), tuple(map(int, (imgpts[2].ravel()))), color, 3)
+
+    cv.line(frame, tuple(map(int, (imgpts[2].ravel()))), tuple(map(int, (imgpts[6].ravel()))), color, 3)
+
+    cv.line(frame, tuple(map(int, (imgpts[3].ravel()))), tuple(map(int, (imgpts[4].ravel()))), color, 3)
+    cv.line(frame, tuple(map(int, (imgpts[3].ravel()))), tuple(map(int, (imgpts[6].ravel()))), color, 3)
+
+    cv.line(frame, tuple(map(int, (imgpts[4].ravel()))), tuple(map(int, (imgpts[0].ravel()))), color, 3)
+
+    cv.line(frame, tuple(map(int, (imgpts[5].ravel()))), tuple(map(int, (imgpts[6].ravel()))), color, 3)
+    cv.line(frame, tuple(map(int, (imgpts[5].ravel()))), tuple(map(int, (imgpts[4].ravel()))), color, 3)
+    cv.line(frame, tuple(map(int, (imgpts[5].ravel()))), tuple(map(int, (imgpts[1].ravel()))), color, 3)
+
 
 
 runCalibration()
