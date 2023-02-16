@@ -38,7 +38,7 @@ def runCalibration():
 
     images = glob.glob('images/*.jpg')
 
-    for fname in images:
+    for (index,fname) in enumerate(images):
         # Get Image
         img = cv.imread(fname)
 
@@ -52,10 +52,9 @@ def runCalibration():
         success, corners = cv.findChessboardCorners(grayImg, (WIDTH, HEIGHT), None)
 
         # If successfully found
-        if success:
+        if success and index != 0:
             # Increase corner accuracy and append
             corners = cv.cornerSubPix(grayImg, corners, (11, 11), (-1, -1), criteria)
-
             # Draw and display the corners
             cv.drawChessboardCorners(img, (WIDTH, HEIGHT), corners, success)
 
@@ -67,7 +66,7 @@ def runCalibration():
         # If not successfully found
         else:
             print('Rejected')
-            '''
+
             cv.imshow('img', img)
 
             # Set mouse click listening event
@@ -84,18 +83,38 @@ def runCalibration():
             # TODO: interpolate
 
             # Increase corner accuracy and append
+            asdf = []
+            toprightX = corners3[0][0] #top right x
+            toprightY = corners3[0][1]
+            topleftX = corners3[1][0]
+            topleftY = corners3[1][1]
+            bottomRightX = corners3[2][0]
+            bottomRightY = corners3[2][1]
+
+            deltax = (abs(toprightX - topleftX) / 8.0, abs(toprightY - topleftY) / 8)
+            deltay = (abs(toprightX - bottomRightX) / 5, abs(toprightY - bottomRightY) / 5)
+
+            for i in range(HEIGHT):
+                for j in range(WIDTH):
+                    asdf.append((corners3[0][0] + -i * deltax[0] + j * deltay[0], corners3[0][1] + -i * deltax[1] + j * deltay[1]))
+
             objpoints.append(objp)
-            corners4 = np.array(corners3)
-            print(corners4)
-            corners5 = cv.cornerSubPix(grayImg, corners4, (11, 11), (-1, -1), criteria)
-            imgpoints.append(corners5)
+            asdf = list(map(lambda x : (np.float32(x[0]), np.float32(x[1])),asdf))
+            corners4 = np.array(asdf).reshape(54,1,2)
+            #print(corners4)
+            #corners5 = cv.cornerSubPix(grayImg, corners4, (11, 11), (-1, -1), criteria)
+            imgpoints.append(corners4)
 
             # Draw and display the corners
-            cv.drawChessboardCorners(img, (WIDTH, HEIGHT), corners5)
+            #for i in range(1,54):
+                #cv.line(img, tuple(map(int, asdf[i-1])), tuple(map(int, asdf[i])), ((i%5) * 50, 255-(i%5) * 50, 0), 3)
+
+            print(corners4)
+            cv.drawChessboardCorners(img, (WIDTH, HEIGHT), corners4, True)
             cv.imshow('img', img)
             cv.waitKey(500)
             corners3.clear()
-        '''
+
     global ret, matrix, distortion
     ret, matrix, distortion, _, _ = cv.calibrateCamera(objpoints, imgpoints, grayImg.shape[::-1], None, None)
 
