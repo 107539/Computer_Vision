@@ -84,19 +84,25 @@ def runCalibration():
 
             # Increase corner accuracy and append
             asdf = []
-            toprightX = corners3[0][0] #top right x
-            toprightY = corners3[0][1]
-            topleftX = corners3[1][0]
-            topleftY = corners3[1][1]
+            topRightX = corners3[0][0] #top right x
+            topRightY = corners3[0][1]
+            topLeftX = corners3[1][0]
+            topLeftY = corners3[1][1]
             bottomRightX = corners3[2][0]
             bottomRightY = corners3[2][1]
+            bottomLeftX = corners3[3][0]
+            bottomLeftY = corners3[3][1]
 
-            deltax = (abs(toprightX - topleftX) / 8.0, abs(toprightY - topleftY) / 8)
-            deltay = (abs(toprightX - bottomRightX) / 5, abs(toprightY - bottomRightY) / 5)
+            deltax = (abs(topRightX - topLeftX) / 8.0, abs(topRightY - topLeftY) / 8)
+            deltay = (abs(topRightX - bottomRightX) / 5, abs(topRightY - bottomRightY) / 5)
+
+            #deltaYRight = (abs(topRightX - bottomRightX) / 5, abs(topRightY - bottomRightY) / 5)
+            #deltaYLeft = (abs(topLeftX - bottomLeftX) / 5, abs(topLeftY - bottomRightY) / 5)
 
             for i in range(HEIGHT):
+
                 for j in range(WIDTH):
-                    asdf.append((corners3[0][0] + -i * deltax[0] + j * deltay[0], corners3[0][1] + -i * deltax[1] + j * deltay[1]))
+                    asdf.append((corners3[0][0] + -i * deltax[0] + -j * deltay[0], corners3[0][1] + i * deltax[1] + j * deltay[1]))
 
             objpoints.append(objp)
             asdf = list(map(lambda x : (np.float32(x[0]), np.float32(x[1])),asdf))
@@ -149,7 +155,7 @@ def draw(frame):
 def drawAxis(frame, rvecs, tvecs):
     axis = np.float32([[3 * SQUARE_SIZE,0,0], [0,3 * SQUARE_SIZE,0], [0,0,-3 * SQUARE_SIZE], [0,0,0]]).reshape(-1,3)
 
-    imgpts, jac = cv.projectPoints(axis, rvecs, tvecs, matrix, distortion)
+    imgpts, jac = cv.projectPoints(axis, rvecs, tvecs, matrix, np.zeros(5))
 
     origin = tuple(map(int,(imgpts[3].ravel())))
 
