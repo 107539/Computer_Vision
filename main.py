@@ -82,7 +82,7 @@ def runCalibration():
             imgpoints.append(corners)
 
             cv.imshow('img', img)
-            # cv.waitKey(500)
+            cv.waitKey(5000)
         # If not successfully found
         else:
             print('Rejected')
@@ -114,12 +114,12 @@ def runCalibration():
             tRtobRd = tRtobR / (WIDTH - 1)
             tLtobLd = tLtobL / (WIDTH - 1)
 
-            for i in range(WIDTH):
-                start = tR - tRtobRd * i
-                end = tL - tLtobLd * i
-                step = (end - start) / (HEIGHT - 1)
-                for j in range(HEIGHT):
-                    res = start + step * j
+            for i in range(HEIGHT):
+                for j in range(WIDTH):
+                    start = tR - tRtobRd * j
+                    end = tL - tLtobLd * j
+                    step = (end - start) / (HEIGHT - 1)
+                    res = start + step * i
                     boardPoints.append((res.x, res.y))
 
             objpoints.append(objp)
@@ -136,7 +136,7 @@ def runCalibration():
             print(corners4)
             cv.drawChessboardCorners(img, (WIDTH, HEIGHT), corners4, True)
             cv.imshow('img', img)
-            cv.waitKey(500)
+            cv.waitKey(5000)
             corners3.clear()
 
     global ret, matrix, distortion
