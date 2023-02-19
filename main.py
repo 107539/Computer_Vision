@@ -143,6 +143,25 @@ def runCalibration():
     ret, matrix, distortion, _, _ = cv.calibrateCamera(objpoints, imgpoints, grayImg.shape[::-1], None, None)
 
 
+def live():
+    cap = cv.Videocapture(0, cv.CAP_ANY)
+
+    if not cap.isOpened():
+        print("Cannot open camera")
+
+    while True:
+        ret, frame = cap.read()
+
+        if not ret:
+            print("Frame not available")
+            break
+
+        grayImg = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+
+        success, corners = cv.findChessboardCorners(grayImg, (WIDTH, HEIGHT), None)
+
+        if(success):
+            draw(frame)
 def draw(frame):
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
     objp = np.zeros((WIDTH * HEIGHT, 3), np.float32)
