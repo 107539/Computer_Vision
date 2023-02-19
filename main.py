@@ -29,22 +29,14 @@ chessBoardFlags = cv.CALIB_CB_ADAPTIVE_THRESH + cv.CALIB_CB_FAST_CHECK + cv.CALI
 
 corners3 = []
 
-
+# click event for collecting corner points
 def click_event(event, x, y, flags, params):
     global corners3
     if event == cv.EVENT_LBUTTONDOWN:
         corners3.append([x, y])
 
-
-def interpolate(i, x, y):
-    x1 = x.x
-    x2 = y.x
-    y1 = x.y
-    y2 = y.y
-    return y1 + (i - x1)((y2 - y1) / (x2 - x1))
-
-
-def runCalibration():
+# grab all images from the selected run and calibrate the camera using them
+def runCalibration(runnr):
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
     objp = np.zeros((WIDTH * HEIGHT, 3), np.float32)
     objp[:, :2] = np.mgrid[0:WIDTH, 0:HEIGHT].T.reshape(-1, 2)
@@ -55,10 +47,10 @@ def runCalibration():
     # Arrays to store object points and image points from all the images.
     objpoints = []  # 3d point in real world space
     imgpoints = []  # 2d points in image plane.
+    path = 'images/run' + runnr + '/*.jpg'
+    images = glob.glob(path)
 
-    images = glob.glob('images/*.jpg')
-
-    for (index, fname) in enumerate(images):
+    for fname in images:
         # Get Image
         img = cv.imread(fname)
 
@@ -82,11 +74,10 @@ def runCalibration():
             imgpoints.append(corners)
 
             cv.imshow('img', img)
-            cv.waitKey(50)
+            cv.waitKey(500)
         # If not successfully found
         else:
-            print('Rejected')
-
+            print(('Rejected ' + fname))
             cv.imshow('img', img)
 
             # Set mouse click listening event
@@ -99,8 +90,6 @@ def runCalibration():
 
                 if len(corners3) == 4:
                     break
-
-            # TODO: interpolate
 
             # Increase corner accuracy and append
             boardPoints = []
@@ -133,16 +122,19 @@ def runCalibration():
             # for i in range(1,54):
             # cv.line(img, tuple(map(int, asdf[i-1])), tuple(map(int, asdf[i])), ((i%5) * 50, 255-(i%5) * 50, 0), 3)
 
-            print(corners4)
+            #print(corners4)
             cv.drawChessboardCorners(img, (WIDTH, HEIGHT), corners4, True)
             cv.imshow('img', img)
-            cv.waitKey(50)
+            cv.waitKey(500)
             corners3.clear()
 
     global ret, matrix, distortion
     ret, matrix, distortion, _, _ = cv.calibrateCamera(objpoints, imgpoints, grayImg.shape[::-1], None, None)
+    print('run ' + runnr)
+    print(matrix)
+    print(ret)
 
-
+# project a cube on the chessboard using live webcam footage
 def live():
     video = cv.VideoCapture(0)
 
@@ -161,7 +153,7 @@ def live():
         success, corners = cv.findChessboardCorners(grayImg, (WIDTH, HEIGHT), None)
 
         if(success):
-            draw(frame)
+            draw(frame, False)
 
         cv.imshow('Live', frame)
 
@@ -171,7 +163,8 @@ def live():
     video.release()
     cv.destroyAllWindows()
 
-def draw(frame):
+# project a cube and the axes onto the chessboard in the image
+def draw(frame, wait = True):
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
     objp = np.zeros((WIDTH * HEIGHT, 3), np.float32)
     objp[:, :2] = np.mgrid[0:WIDTH, 0:HEIGHT].T.reshape(-1, 2)
@@ -196,10 +189,11 @@ def draw(frame):
         finalImg = drawAxis(frame, rvecs, tvecs)
         frame = drawCube(frame, rvecs, tvecs)
 
-        cv.imshow('img', finalImg)
-        cv.waitKey(0)
+        cv.imshow('img', frame)
+        if(wait):
+            cv.waitKey(0)
 
-
+# project the axes onto the image
 def drawAxis(frame, rvecs, tvecs):
     axis = np.float32([[3 * SQUARE_SIZE, 0, 0], [0, 3 * SQUARE_SIZE, 0], [0, 0, -3 * SQUARE_SIZE], [0, 0, 0]]).reshape(
         -1, 3)
@@ -214,7 +208,7 @@ def drawAxis(frame, rvecs, tvecs):
 
     return frame
 
-
+# project a cube onto the image
 def drawCube(frame, rvecs, tvecs):
     vec = 2 * SQUARE_SIZE
     axis = np.float32(
@@ -246,10 +240,25 @@ def drawCube(frame, rvecs, tvecs):
     cv.line(frame, tuple(map(int, (imgpts[5].ravel()))), tuple(map(int, (imgpts[4].ravel()))), color, 3)
     cv.line(frame, tuple(map(int, (imgpts[5].ravel()))), tuple(map(int, (imgpts[1].ravel()))), color, 3)
 
+    return frame
 
-runCalibration()
+# do the calibration runs and then switch to the live feed
 
-frame = cv.imread("images/WIN_20220216_15_16_03_Pro.jpg");
+runCalibration('1')
+
+frame = cv.imread("images/run1/WIN_20230219_13_10_18_Pro.jpg");
+draw(frame)
+
+runCalibration('2')
+
+frame = cv.imread("images/run1/WIN_20230219_13_10_18_Pro.jpg");
+draw(frame)
+
+runCalibration('3')
+
+frame = cv.imread("images/run1/WIN_20230219_13_10_18_Pro.jpg");
+draw(frame)
+
 live()
 
 cv.destroyAllWindows()
