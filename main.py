@@ -72,7 +72,7 @@ def runCalibration():
         success, corners = cv.findChessboardCorners(grayImg, (WIDTH, HEIGHT), None)
 
         # If successfully found
-        if success and index != 0:
+        if success:
             # Increase corner accuracy and append
             corners = cv.cornerSubPix(grayImg, corners, (11, 11), (-1, -1), criteria)
             # Draw and display the corners
@@ -82,7 +82,7 @@ def runCalibration():
             imgpoints.append(corners)
 
             cv.imshow('img', img)
-            cv.waitKey(5000)
+            cv.waitKey(50)
         # If not successfully found
         else:
             print('Rejected')
@@ -136,7 +136,7 @@ def runCalibration():
             print(corners4)
             cv.drawChessboardCorners(img, (WIDTH, HEIGHT), corners4, True)
             cv.imshow('img', img)
-            cv.waitKey(5000)
+            cv.waitKey(50)
             corners3.clear()
 
     global ret, matrix, distortion
@@ -144,13 +144,13 @@ def runCalibration():
 
 
 def live():
-    cap = cv.Videocapture(0, cv.CAP_ANY)
+    video = cv.VideoCapture(0)
 
-    if not cap.isOpened():
+    if not video.isOpened():
         print("Cannot open camera")
 
     while True:
-        ret, frame = cap.read()
+        ret, frame = video.read()
 
         if not ret:
             print("Frame not available")
@@ -162,6 +162,15 @@ def live():
 
         if(success):
             draw(frame)
+
+        cv.imshow('Live', frame)
+
+        if cv.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    video.release()
+    cv.destroyAllWindows()
+
 def draw(frame):
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
     objp = np.zeros((WIDTH * HEIGHT, 3), np.float32)
@@ -241,7 +250,7 @@ def drawCube(frame, rvecs, tvecs):
 runCalibration()
 
 frame = cv.imread("images/WIN_20220216_15_16_03_Pro.jpg");
-draw(frame)
+live()
 
 cv.destroyAllWindows()
 
